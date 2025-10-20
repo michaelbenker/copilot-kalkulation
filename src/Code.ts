@@ -31,27 +31,6 @@ interface EventData {
 }
 
 /**
- * Setup-Funktion: Script Properties setzen
- * Führe diese Funktion einmalig aus, um Secrets zu konfigurieren
- */
-function setupScriptProperties() {
-  const props = PropertiesService.getScriptProperties();
-
-  // WICHTIG: Ersetze diese Werte mit deinen tatsächlichen Secrets
-  props.setProperties({
-    TEMPLATE_ID: "1NhOBnqMQKTNAsncMSeGI5zvaYOACkowL68FmaoKaOI0",
-    COPILOT_BASE_API_URL: "https://copilot.events",
-    INSTANCE_ID: "dreigroschen",
-    BENUTZERFELD_ID: "55c6136e-29c9-4df8-977e-80da350bee09",
-    API_TOKEN: "d0fe9006-a5dc-4b43-b359-2f2ceb16b0f6",
-    SECRET_VALUE: "K9mL7pQ2xN8wR4vB5tYh",
-  });
-
-  Logger.log("✓ Script Properties erfolgreich gesetzt!");
-  Logger.log("Properties: " + JSON.stringify(props.getProperties()));
-}
-
-/**
  * Test-Funktion für lokale Entwicklung
  * Diese Funktion kann direkt im Script Editor ausgeführt werden
  */

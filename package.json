@@ -1,4 +1,12 @@
 {
+  "name": "copilot-kalkulation",
+  "version": "1.0.0",
+  "description": "Google Apps Script Web-App für Copilot Events Kalkulation",
+  "scripts": {
+    "build": "tsc",
+    "push": "npm run build && clasp push --force",
+    "setup-env": "node scripts/upload-env.js"
+  },
   "devDependencies": {
     "@types/google-apps-script": "^2.0.7",
     "typescript": "^5.9.3"

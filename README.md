@@ -71,12 +71,27 @@ Eine Google Apps Script Web-App, die automatisch ein neues Spreadsheet aus einem
 
 ### Script Properties setzen
 
-**Option 1: Setup-Funktion ausführen**
+**Option 1: Aus .env hochladen (empfohlen)**
 
-Im Script Editor:
-1. Wähle Funktion `setupScriptProperties` aus dem Dropdown
-2. Klicke **Ausführen**
-3. Passe die Werte in der Funktion vorher an
+1. Kopiere `.env.example` zu `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Fülle `.env` mit deinen Werten aus
+
+3. Generiere Setup-Code:
+   ```bash
+   npm run setup-env
+   ```
+
+4. Push und im Script Editor ausführen:
+   ```bash
+   npm run push
+   # Im Script Editor: setupScriptPropertiesFromEnv() ausführen
+   ```
+
+5. Lösche `src/SetupEnv.ts` (nicht committen!)
 
 **Option 2: Manuell setzen**
 

@@ -1,3 +1,5 @@
 node_modules/
 build/
 .clasp.json
+.env
+src/SetupEnv.ts
