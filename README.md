@@ -45,25 +45,67 @@ Eine Google Apps Script Web-App, die automatisch ein neues Spreadsheet aus einem
 
 ### Entwicklung
 
-- **Code bearbeiten**: Bearbeite `src/Code.ts` und andere TypeScript-Dateien
-- **Kompilieren und pushen**: `npx tsc && clasp push --force`
-- **Testen**: Im Script Editor `testScript` ausführen
-- **Logs anzeigen**: Im Script Editor → Ausführungsprotokoll
-- **Script öffnen**: Im Browser [script.google.com](https://script.google.com)
+**Workflow:**
+
+```bash
+# Code bearbeiten in src/Code.ts
+
+# Kompilieren und pushen
+npm run push
+
+# Oder manuell
+npx tsc && clasp push --force
+```
+
+**Testen ohne Deployment:**
+
+1. Im Script Editor: Funktion `testScript` auswählen
+2. **Ausführen** klicken
+3. **Ausführungsprotokoll** öffnen für Logs
+
+**Vorteile:**
+- ✅ Kein Deployment nötig
+- ✅ Schnellere Iteration
+- ✅ Detaillierte Logs
+- ✅ Direktes Debugging
 
 ### Deployment
 
-1. Code mit clasp pushen:
+**Erstmaliges Deployment:**
+
+1. Code pushen:
    ```bash
-   npx tsc && clasp push --force
+   npm run push
    ```
 
-2. In Google Apps Script Editor:
-   - Gehe zu **Deploy** → **New deployment**
-   - Wähle **Web app**
-   - Setze **Execute as**: Me
-   - Setze **Who has access**: Anyone (für geheime URL)
-   - Kopiere die Web-App URL
+2. Im Google Apps Script Editor:
+   - **Bereitstellen** → **Neue Bereitstellung**
+   - Typ: **Web-App** auswählen
+   - **Beschreibung**: z.B. "v1.0"
+   - **Ausführen als**: Ich
+   - **Zugriff**: Jeder
+   - **Bereitstellen** klicken
+   - **Web-App URL kopieren**
+
+3. Bei erster Ausführung: Berechtigungen erteilen
+   - **Erweitert** klicken
+   - **Zu copilot-kalkulation wechseln (unsicher)**
+   - Alle Berechtigungen **Zulassen**
+
+**Updates deployen:**
+
+1. Code ändern und pushen:
+   ```bash
+   npm run push
+   ```
+
+2. Im Script Editor:
+   - **Bereitstellen** → **Bereitstellungen verwalten**
+   - **Stift-Symbol** (Bearbeiten) klicken
+   - **Neue Version** auswählen
+   - **Bereitstellen**
+
+Die URL bleibt gleich, nur die Version ändert sich.
 
 ## Konfiguration
 
@@ -122,10 +164,27 @@ Die Web-App wird mit folgender URL aufgerufen:
 https://script.google.com/macros/s/{DEPLOYMENT_ID}/exec?secret={SECRET_VALUE}&eventId={EVENT_ID}
 ```
 
+**URL-Parameter:**
+- `secret`: Geheimer Wert aus Script Properties (`SECRET_VALUE`)
+- `eventId`: UUID des Events in Copilot Events
+
 **Beispiel:**
 ```
-https://script.google.com/macros/s/AKfy...xyz/exec?secret=K9mL7pQ2xN8wR4vB5tYh&eventId=ad5e98fb-259d-4088-9f78-df112f9a9b3d
+https://script.google.com/macros/s/AKfycbyfMxW-1NtQhpq3zoAe1JKS8Uc17O1bnvQ-rRJXPxtAtdUUi3jfzkCLlYnHEn8rn1Cn/exec?secret=K9mL7pQ2xN8wR4vB5tYh&eventId=ad5e98fb-259d-4088-9f78-df112f9a9b3d
 ```
+
+**Response bei Erfolg:**
+```html
+<h1>Spreadsheet erstellt</h1>
+<p>Event-ID: ad5e98fb-259d-4088-9f78-df112f9a9b3d</p>
+<p>Link: <a href="https://docs.google.com/spreadsheets/d/...">https://docs.google.com/spreadsheets/d/...</a></p>
+<p>API-Status: Erfolgreich (204)</p>
+```
+
+**Response bei Fehler:**
+- `Zugriff verweigert`: Secret-Parameter fehlt oder falsch
+- `Fehler: eventId fehlt`: eventId-Parameter nicht übergeben
+- `Error: ...`: Technischer Fehler (siehe Ausführungsprotokoll)
 
 ### API-Integration
 
@@ -169,28 +228,83 @@ curl --location --request PUT 'https://copilot.events/dreigroschen/api/events/{e
 ```
 .
 ├── src/
-│   ├── Code.ts           # Hauptlogik der Web-App
+│   ├── Code.ts           # Hauptlogik der Web-App (TypeScript)
 │   └── Page.html         # UI mit Button (nicht verwendet)
+├── scripts/
+│   └── upload-env.js     # Hilfsskript: .env → Script Properties
+├── build/
+│   └── Code.js           # Kompiliertes JavaScript (nicht committen)
+├── .env.example          # Template für lokale Secrets
+├── .env                  # Lokale Secrets (nicht committen)
+├── .clasp.json           # clasp Konfiguration (nicht committen)
+├── .claspignore          # Ignorierte Dateien für clasp
+├── .gitignore            # Git ignore
 ├── appsscript.json       # Apps Script Manifest
 ├── tsconfig.json         # TypeScript-Konfiguration
-├── .claspignore          # Ignorierte Dateien für clasp
-├── .gitignore            # Git ignore (node_modules, build, .clasp.json)
+├── package.json          # npm Scripts und Dependencies
 └── README.md             # Diese Datei
 ```
 
-## Response
+## Was macht die App genau?
 
-Nach erfolgreicher Ausführung zeigt die Web-App:
-- Event-ID
-- Generierte Spreadsheet-URL
-- API-Status (Erfolgreich/Fehler)
+1. **Empfängt Request** mit `secret` und `eventId`
+2. **Validiert Secret** (Script Property `SECRET_VALUE`)
+3. **Ruft GraphQL API** auf mit Event-ID
+4. **Parsed Event-Daten**:
+   - `displayName` → Spreadsheet B1
+   - `start` → Spreadsheet B2
+   - `end` → Spreadsheet B3 (falls vorhanden)
+   - Aktuelles Datum → Spreadsheet D2
+5. **Kopiert Template** und befüllt Zellen
+6. **Setzt Freigabe** auf "Jeder mit Link"
+7. **PUT-Request** an Copilot Events API mit Spreadsheet-URL
+8. **Zeigt Erfolgsmeldung** mit Links
 
 ## Sicherheit
 
-- ✅ Secrets in Script Properties (nicht im Code)
-- ✅ `.clasp.json` in `.gitignore` (enthält Script-ID)
-- ✅ URL-Parameter-Validierung
-- ✅ Geheime URL mit Secret-Token
+- ✅ **Secrets in Script Properties** (nicht im Code)
+- ✅ **`.env` in `.gitignore`** (lokale Secrets werden nicht committed)
+- ✅ **`.clasp.json` in `.gitignore`** (enthält Script-ID)
+- ✅ **URL-Parameter-Validierung** (Secret wird geprüft)
+- ✅ **Geheime URL** mit Secret-Token
+- ✅ **Private Git Repository** (Secrets im Commit-History sind akzeptabel)
+
+## Troubleshooting
+
+### "Script-Funktion nicht gefunden: doGet"
+- **Lösung**: Code nicht gepusht → `npm run push`
+- Neue Deployment-Version erstellen
+
+### "Zugriff verweigert"
+- **Lösung**: Secret-Parameter falsch oder fehlt
+- Prüfe `SECRET_VALUE` in Script Properties
+
+### "Cannot read properties of undefined"
+- **Lösung**: Script Properties nicht gesetzt
+- Führe `npm run setup-env` und `setupScriptPropertiesFromEnv()` aus
+
+### "Service Spreadsheets failed"
+- **Lösung**: Template-ID falsch oder keine Berechtigung
+- Prüfe `TEMPLATE_ID` in Script Properties
+- Template auf "Jeder mit Link" freigeben
+
+### Event-Daten werden nicht eingetragen
+- **Lösung**: GraphQL Response hat anderes Format
+- Prüfe Logs im Ausführungsprotokoll
+- Passe Feldnamen in `src/Code.ts` an
+
+### API-Request schlägt fehl (nicht 204)
+- **Lösung**: API_TOKEN ungültig oder falsche URL
+- Prüfe Token und Benutzerfeld-ID in Script Properties
+- Teste API-Request mit curl
+
+## npm Scripts
+
+```bash
+npm run build        # TypeScript kompilieren
+npm run push         # Build + clasp push
+npm run setup-env    # .env → Setup-Code generieren
+```
 
 ## Lizenz
 
