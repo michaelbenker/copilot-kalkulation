@@ -1,0 +1,8 @@
+node_modules/**
+.git/**
+.vscode/**
+*.md
+tsconfig.json
+package*.json
+README.md
+src/**
