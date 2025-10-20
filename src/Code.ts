@@ -1,19 +1,23 @@
 /**
- * Konfiguration
+ * Lädt Konfiguration aus Script Properties
+ * Secrets werden nicht im Code gespeichert, sondern als Script Properties
  */
-const CONFIG = {
-  TEMPLATE_ID: "1NhOBnqMQKTNAsncMSeGI5zvaYOACkowL68FmaoKaOI0", // Nur die ID aus URL: docs.google.com/spreadsheets/d/{ID}/edit
+function getConfig() {
+  const props = PropertiesService.getScriptProperties();
 
-  // Copilot Events API Konfiguration
-  COPILOT_BASE_API_URL: "https://copilot.events", // Basis-URL der Copilot API
-  INSTANCE_ID: "dreigroschen", // Instanz-ID
-  BENUTZERFELD_ID: "55c6136e-29c9-4df8-977e-80da350bee09", // ID des Benutzerfelds für Spreadsheet-URL
-  API_TOKEN: "d0fe9006-a5dc-4b43-b359-2f2ceb16b0f6", // Bearer Token für API-Authentifizierung
+  return {
+    TEMPLATE_ID: props.getProperty("TEMPLATE_ID") || "",
+    COPILOT_BASE_API_URL: props.getProperty("COPILOT_BASE_API_URL") || "https://copilot.events",
+    INSTANCE_ID: props.getProperty("INSTANCE_ID") || "dreigroschen",
+    BENUTZERFELD_ID: props.getProperty("BENUTZERFELD_ID") || "",
+    API_TOKEN: props.getProperty("API_TOKEN") || "",
+    SECRET_URL_PARAM: "secret",
+    SECRET_VALUE: props.getProperty("SECRET_VALUE") || "",
+  };
+}
 
-  // Web-App Security
-  SECRET_URL_PARAM: "secret", // Parameter für geheime URL-Validierung
-  SECRET_VALUE: "K9mL7pQ2xN8wR4vB5tYh", // Geheimer Wert für URL-Zugriff (ohne Sonderzeichen)
-};
+// Globale Config-Variable
+const CONFIG = getConfig();
 
 /**
  * Event-Daten Interface
@@ -24,6 +28,27 @@ interface EventData {
   startDate?: string;
   endDate?: string;
   [key: string]: any;
+}
+
+/**
+ * Setup-Funktion: Script Properties setzen
+ * Führe diese Funktion einmalig aus, um Secrets zu konfigurieren
+ */
+function setupScriptProperties() {
+  const props = PropertiesService.getScriptProperties();
+
+  // WICHTIG: Ersetze diese Werte mit deinen tatsächlichen Secrets
+  props.setProperties({
+    TEMPLATE_ID: "1NhOBnqMQKTNAsncMSeGI5zvaYOACkowL68FmaoKaOI0",
+    COPILOT_BASE_API_URL: "https://copilot.events",
+    INSTANCE_ID: "dreigroschen",
+    BENUTZERFELD_ID: "55c6136e-29c9-4df8-977e-80da350bee09",
+    API_TOKEN: "d0fe9006-a5dc-4b43-b359-2f2ceb16b0f6",
+    SECRET_VALUE: "K9mL7pQ2xN8wR4vB5tYh",
+  });
+
+  Logger.log("✓ Script Properties erfolgreich gesetzt!");
+  Logger.log("Properties: " + JSON.stringify(props.getProperties()));
 }
 
 /**

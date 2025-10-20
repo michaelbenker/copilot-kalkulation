@@ -34,30 +34,28 @@ Eine Google Apps Script Web-App, die automatisch ein neues Spreadsheet aus einem
 
 1. Repository klonen
 2. Bei clasp anmelden (falls noch nicht geschehen):
-
    ```bash
    clasp login
    ```
 
 3. TypeScript-Abhängigkeiten installieren:
    ```bash
-   npm install -D @types/google-apps-script
+   npm install -D @types/google-apps-script typescript
    ```
 
 ### Entwicklung
 
 - **Code bearbeiten**: Bearbeite `src/Code.ts` und andere TypeScript-Dateien
-- **Code hochladen**: `clasp push`
-- **Code herunterladen**: `clasp pull`
-- **Logs anzeigen**: `clasp logs`
-- **Script öffnen**: `clasp open`
+- **Kompilieren und pushen**: `npx tsc && clasp push --force`
+- **Testen**: Im Script Editor `testScript` ausführen
+- **Logs anzeigen**: Im Script Editor → Ausführungsprotokoll
+- **Script öffnen**: Im Browser [script.google.com](https://script.google.com)
 
 ### Deployment
 
 1. Code mit clasp pushen:
-
    ```bash
-   clasp push
+   npx tsc && clasp push --force
    ```
 
 2. In Google Apps Script Editor:
@@ -69,27 +67,36 @@ Eine Google Apps Script Web-App, die automatisch ein neues Spreadsheet aus einem
 
 ## Konfiguration
 
-In [src/Code.ts](src/Code.ts) müssen folgende Werte konfiguriert werden:
+**Secrets werden als Script Properties gespeichert**, nicht im Code (Git Guardian Security).
 
-```typescript
-const CONFIG = {
-  TEMPLATE_ID: "DEINE_TEMPLATE_SPREADSHEET_ID", // Google Sheets Template-ID (example.xlsx)
+### Script Properties setzen
 
-  // Copilot Events API Konfiguration
-  COPILOT_BASE_API_URL: "https://copilot.events", // Basis-URL der Copilot API
-  INSTANCE_ID: "dreigroschen", // Instanz-ID
-  BENUTZERFELD_ID: "55c6136e-29c9-4df8-977e-80da350bee09", // ID des Benutzerfelds
-  API_TOKEN: "d0fe9006-a5dc-4b43-b359-2f2ceb16b0f6", // Bearer Token
+**Option 1: Setup-Funktion ausführen**
 
-  // Web-App Security
-  SECRET_URL_PARAM: "secret",
-  SECRET_VALUE: "dein-geheimer-wert", // Geheimer Wert für URL-Zugriff
-};
-```
+Im Script Editor:
+1. Wähle Funktion `setupScriptProperties` aus dem Dropdown
+2. Klicke **Ausführen**
+3. Passe die Werte in der Funktion vorher an
+
+**Option 2: Manuell setzen**
+
+Im Script Editor:
+1. **Projekteinstellungen** (⚙️) → **Script Properties**
+2. **Eigenschaft hinzufügen** für jede Property
+
+**Erforderliche Properties:**
+
+| Property | Beispiel | Beschreibung |
+|----------|----------|--------------|
+| `TEMPLATE_ID` | `1NhO...OI0` | Google Sheets Template-ID |
+| `API_TOKEN` | `d0fe9006-...` | Bearer Token für Copilot Events API |
+| `SECRET_VALUE` | `K9mL7p...` | Geheimer Wert für URL-Zugriff |
+| `BENUTZERFELD_ID` | `55c6136e-...` | ID des Benutzerfelds in Copilot Events |
+| `INSTANCE_ID` | `dreigroschen` | Copilot Events Instanz-ID |
+| `COPILOT_BASE_API_URL` | `https://copilot.events` | Basis-URL der API |
 
 ### Template-ID ermitteln
-
-1. Öffne dein Template-Spreadsheet (example.xlsx) in Google Sheets
+1. Öffne dein Template-Spreadsheet in Google Sheets
 2. Kopiere die ID aus der URL: `https://docs.google.com/spreadsheets/d/{TEMPLATE_ID}/edit`
 
 ## Verwendung
@@ -101,9 +108,8 @@ https://script.google.com/macros/s/{DEPLOYMENT_ID}/exec?secret={SECRET_VALUE}&ev
 ```
 
 **Beispiel:**
-
 ```
-https://script.google.com/macros/s/AKfy...xyz/exec?secret=mein-geheimer-wert&eventId=fdf2b5c2-94e3-41a7-a888-3bea5760661e
+https://script.google.com/macros/s/AKfy...xyz/exec?secret=K9mL7pQ2xN8wR4vB5tYh&eventId=ad5e98fb-259d-4088-9f78-df112f9a9b3d
 ```
 
 ### API-Integration
@@ -115,11 +121,10 @@ POST {COPILOT_BASE_API_URL}/{INSTANCE_ID}/api/graph
 ```
 
 **Request:**
-
 ```bash
 curl --location 'https://copilot.events/dreigroschen/api/graph' \
 --header 'Content-Type: application/json' \
---header 'Authorization: Bearer d0fe9006-a5dc-4b43-b359-2f2ceb16b0f6' \
+--header 'Authorization: Bearer {API_TOKEN}' \
 --data '{
     "operationName": "getSimpleEvent",
     "variables": {
@@ -135,11 +140,10 @@ PUT {COPILOT_BASE_API_URL}/{INSTANCE_ID}/api/events/{eventId}/benutzerfelder/{BE
 ```
 
 **Request:**
-
 ```bash
 curl --location --request PUT 'https://copilot.events/dreigroschen/api/events/{eventId}/benutzerfelder/55c6136e-29c9-4df8-977e-80da350bee09' \
 --header 'Content-Type: application/json' \
---header 'Authorization: Bearer d0fe9006-a5dc-4b43-b359-2f2ceb16b0f6' \
+--header 'Authorization: Bearer {API_TOKEN}' \
 --data '{
   "value": "{spreadsheetUrl}"
 }'
@@ -155,16 +159,23 @@ curl --location --request PUT 'https://copilot.events/dreigroschen/api/events/{e
 ├── appsscript.json       # Apps Script Manifest
 ├── tsconfig.json         # TypeScript-Konfiguration
 ├── .claspignore          # Ignorierte Dateien für clasp
+├── .gitignore            # Git ignore (node_modules, build, .clasp.json)
 └── README.md             # Diese Datei
 ```
 
 ## Response
 
 Nach erfolgreicher Ausführung zeigt die Web-App:
-
 - Event-ID
 - Generierte Spreadsheet-URL
 - API-Status (Erfolgreich/Fehler)
+
+## Sicherheit
+
+- ✅ Secrets in Script Properties (nicht im Code)
+- ✅ `.clasp.json` in `.gitignore` (enthält Script-ID)
+- ✅ URL-Parameter-Validierung
+- ✅ Geheime URL mit Secret-Token
 
 ## Lizenz
 
