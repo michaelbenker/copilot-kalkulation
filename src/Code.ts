@@ -53,36 +53,15 @@ function testScript() {
     Logger.log("=== TEST ERFOLGREICH ===");
     Logger.log("API-Status: " + result.apiStatus);
     Logger.log("");
-    Logger.log("🔗 Spreadsheet öffnen:");
+    Logger.log("✅ SPREADSHEET ERSTELLT!");
+    Logger.log("📋 Kopiere diesen Link und öffne ihn im Browser:");
+    Logger.log("");
     Logger.log(result.url);
-
-    // HTML-Output mit klickbarem Link im neuen Tab
-    const htmlOutput = HtmlService.createHtmlOutput(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <base target="_blank">
-          <script>
-            window.onload = function() {
-              window.open('${result.url}', '_blank');
-            }
-          </script>
-        </head>
-        <body>
-          <h2>✅ Spreadsheet erfolgreich erstellt!</h2>
-          <p><a href="${result.url}" target="_blank">→ Spreadsheet im neuen Tab öffnen</a></p>
-          <p><small>API-Status: ${result.apiStatus}</small></p>
-        </body>
-      </html>
-    `).setWidth(400).setHeight(150);
-
-    SpreadsheetApp.getUi().showModalDialog(htmlOutput, 'Test erfolgreich');
+    Logger.log("");
 
   } catch (error) {
     Logger.log("=== TEST FEHLER ===");
     Logger.log("Fehler: " + error);
-
-    SpreadsheetApp.getUi().alert('Test Fehler', 'Fehler: ' + error, SpreadsheetApp.getUi().ButtonSet.OK);
   }
 }
 
