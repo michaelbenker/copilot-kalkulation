@@ -6,3 +6,4 @@ tsconfig.json
 package*.json
 README.md
 src/**
+scripts/**

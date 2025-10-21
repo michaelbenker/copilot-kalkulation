@@ -7,7 +7,8 @@ function getConfig() {
 
   return {
     TEMPLATE_ID: props.getProperty("TEMPLATE_ID") || "",
-    COPILOT_BASE_API_URL: props.getProperty("COPILOT_BASE_API_URL") || "https://copilot.events",
+    COPILOT_BASE_API_URL:
+      props.getProperty("COPILOT_BASE_API_URL") || "https://copilot.events",
     INSTANCE_ID: props.getProperty("INSTANCE_ID") || "dreigroschen",
     BENUTZERFELD_ID: props.getProperty("BENUTZERFELD_ID") || "",
     API_TOKEN: props.getProperty("API_TOKEN") || "",
@@ -66,7 +67,9 @@ function doGet(
 ): GoogleAppsScript.HTML.HtmlOutput {
   // Null-Check für Event-Objekt
   if (!e || !e.parameter) {
-    return HtmlService.createHtmlOutput("<h1>Fehler: Keine Parameter empfangen</h1>");
+    return HtmlService.createHtmlOutput(
+      "<h1>Fehler: Keine Parameter empfangen</h1>"
+    );
   }
 
   // Debug: Log alle Parameter
@@ -140,10 +143,46 @@ function createAndProcessSpreadsheet(eventId: string): {
 
     // 3. Felder mit Event-Daten befüllen
     const sheet = spreadsheet.getActiveSheet();
-    sheet.getRange("B1").setValue(eventData.displayName || eventData.name || "");
-    sheet.getRange("B2").setValue(eventData.start || eventData.startDate || "");
-    sheet.getRange("B3").setValue(eventData.end || eventData.endDate || "");
-    sheet.getRange("D2").setValue(new Date().toLocaleString("de-DE"));
+
+    // B1: Start-Datum formatieren (DD.MM.YYYY HH:MM)
+    const startDate = eventData.start || eventData.startDate;
+    if (startDate) {
+      const formattedStart = new Date(startDate).toLocaleString("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      sheet.getRange("B1").setValue(formattedStart);
+    }
+
+    // B2: Location (Raum und Location)
+    let locationText = "";
+    if (eventData.rooms?.edges?.[0]?.node) {
+      const room = eventData.rooms.edges[0].node;
+      const roomName = room.name || "";
+      const locationName = room.location?.name || "";
+
+      if (roomName && locationName) {
+        locationText = `${roomName} (${locationName})`;
+      } else if (roomName) {
+        locationText = roomName;
+      } else if (locationName) {
+        locationText = locationName;
+      }
+    }
+    sheet.getRange("B2").setValue(locationText);
+
+    // B3: Künstler (komma-getrennt)
+    let artistsText = "";
+    if (eventData.artists?.edges && eventData.artists.edges.length > 0) {
+      const artistNames = eventData.artists.edges
+        .map((edge: any) => edge.node?.name)
+        .filter((name: string) => name);
+      artistsText = artistNames.join(", ");
+    }
+    sheet.getRange("B3").setValue(artistsText);
 
     // 4. Freigabe setzen (geheime URL mit ANYONE_WITH_LINK)
     newFile.setSharing(
