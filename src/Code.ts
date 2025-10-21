@@ -172,7 +172,9 @@ function createAndProcessSpreadsheet(eventId: string): {
         locationText = locationName;
       }
     }
-    sheet.getRange("B2").setValue(locationText);
+    const b2Cell = sheet.getRange("B2");
+    b2Cell.setValue(locationText);
+    b2Cell.setHorizontalAlignment("left");
 
     // B3: Künstler (komma-getrennt)
     let artistsText = "";
