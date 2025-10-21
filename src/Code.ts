@@ -49,13 +49,40 @@ function testScript() {
     // Test Spreadsheet erstellen
     Logger.log("2. Erstelle Spreadsheet...");
     const result = createAndProcessSpreadsheet(testEventId);
-    Logger.log("Spreadsheet erstellt: " + result.url);
-    Logger.log("API-Status: " + result.apiStatus);
 
     Logger.log("=== TEST ERFOLGREICH ===");
+    Logger.log("API-Status: " + result.apiStatus);
+    Logger.log("");
+    Logger.log("🔗 Spreadsheet öffnen:");
+    Logger.log(result.url);
+
+    // HTML-Output mit klickbarem Link im neuen Tab
+    const htmlOutput = HtmlService.createHtmlOutput(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <base target="_blank">
+          <script>
+            window.onload = function() {
+              window.open('${result.url}', '_blank');
+            }
+          </script>
+        </head>
+        <body>
+          <h2>✅ Spreadsheet erfolgreich erstellt!</h2>
+          <p><a href="${result.url}" target="_blank">→ Spreadsheet im neuen Tab öffnen</a></p>
+          <p><small>API-Status: ${result.apiStatus}</small></p>
+        </body>
+      </html>
+    `).setWidth(400).setHeight(150);
+
+    SpreadsheetApp.getUi().showModalDialog(htmlOutput, 'Test erfolgreich');
+
   } catch (error) {
     Logger.log("=== TEST FEHLER ===");
     Logger.log("Fehler: " + error);
+
+    SpreadsheetApp.getUi().alert('Test Fehler', 'Fehler: ' + error, SpreadsheetApp.getUi().ButtonSet.OK);
   }
 }
 
@@ -154,7 +181,9 @@ function createAndProcessSpreadsheet(eventId: string): {
         hour: "2-digit",
         minute: "2-digit",
       });
-      sheet.getRange("B1").setValue(formattedStart);
+      const b1Cell = sheet.getRange("B1");
+      b1Cell.setValue(formattedStart);
+      b1Cell.setHorizontalAlignment("left");
     }
 
     // B2: Location (Raum und Location)
