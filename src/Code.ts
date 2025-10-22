@@ -302,8 +302,10 @@ function updateEventBenutzerfeld(
     // API-URL dynamisch zusammenbauen
     const apiUrl = `${CONFIG.COPILOT_BASE_API_URL}/${CONFIG.INSTANCE_ID}/api/events/${eventId}/benutzerfelder/${CONFIG.BENUTZERFELD_ID}`;
 
+    // LinkValue benötigt JSON-encoded string mit href
+    const linkValue = JSON.stringify({ href: spreadsheetUrl });
     const payload = {
-      value: spreadsheetUrl,
+      value: linkValue,
     };
 
     const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
