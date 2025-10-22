@@ -14,6 +14,7 @@ function getConfig() {
     API_TOKEN: props.getProperty("API_TOKEN") || "",
     SECRET_URL_PARAM: "secret",
     SECRET_VALUE: props.getProperty("SECRET_VALUE") || "",
+    OUTPUT_FOLDER_NAME: props.getProperty("OUTPUT_FOLDER_NAME") || "copilot-kalkulationen",
   };
 }
 
@@ -133,21 +134,30 @@ function createAndProcessSpreadsheet(eventId: string): {
       throw new Error("Event-Daten konnten nicht abgerufen werden");
     }
 
-    // 2. Template kopieren
+    // 2. Output-Ordner finden oder erstellen
+    let outputFolder;
+    const folders = DriveApp.getFoldersByName(CONFIG.OUTPUT_FOLDER_NAME);
+    if (folders.hasNext()) {
+      outputFolder = folders.next();
+    } else {
+      outputFolder = DriveApp.createFolder(CONFIG.OUTPUT_FOLDER_NAME);
+    }
+
+    // 3. Template kopieren in Output-Ordner
     const template = DriveApp.getFileById(CONFIG.TEMPLATE_ID);
     const fileName =
       "Kalkulation " +
       (eventData.displayName || eventData.name || eventId) +
       " - " +
       new Date().toLocaleString("de-DE");
-    const newFile = template.makeCopy(fileName);
+    const newFile = template.makeCopy(fileName, outputFolder);
 
     // Warte kurz, damit die Datei verfügbar ist
     Utilities.sleep(1000);
 
     const spreadsheet = SpreadsheetApp.openById(newFile.getId());
 
-    // 3. Felder mit Event-Daten befüllen
+    // 4. Felder mit Event-Daten befüllen
     const sheet = spreadsheet.getActiveSheet();
 
     // B1: Start-Datum formatieren (DD.MM.YYYY HH:MM)
@@ -194,14 +204,14 @@ function createAndProcessSpreadsheet(eventId: string): {
     }
     sheet.getRange("B3").setValue(artistsText);
 
-    // 4. Freigabe setzen (geheime URL mit ANYONE_WITH_LINK)
+    // 5. Freigabe setzen (geheime URL mit ANYONE_WITH_LINK)
     newFile.setSharing(
       DriveApp.Access.ANYONE_WITH_LINK,
       DriveApp.Permission.EDIT
     );
     const spreadsheetUrl = spreadsheet.getUrl();
 
-    // 5. API aufrufen - Spreadsheet-URL zurückschreiben
+    // 6. API aufrufen - Spreadsheet-URL zurückschreiben
     const apiResult = updateEventBenutzerfeld(eventId, spreadsheetUrl);
 
     return {
@@ -307,15 +317,25 @@ function updateEventBenutzerfeld(
     };
 
     Logger.log("API-Aufruf: " + apiUrl);
+    Logger.log("Payload: " + JSON.stringify(payload));
     const response = UrlFetchApp.fetch(apiUrl, options);
     const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    Logger.log("API-Response Code: " + responseCode);
+    Logger.log("API-Response Body: " + responseText.substring(0, 200));
 
     if (responseCode === 200 || responseCode === 201 || responseCode === 204) {
       Logger.log("API-Erfolg: " + responseCode);
       return "Erfolgreich (" + responseCode + ")";
     } else {
-      Logger.log("API-Fehler: " + response.getContentText());
-      return "Fehler (" + responseCode + "): " + response.getContentText();
+      // Prüfe ob HTML zurückkam (Server Error)
+      if (responseText.startsWith("<")) {
+        Logger.log("API-Fehler: Server gab HTML zurück (wahrscheinlich 500 Error)");
+        return "Fehler (" + responseCode + "): Server Error (HTML Response)";
+      }
+      Logger.log("API-Fehler: " + responseText);
+      return "Fehler (" + responseCode + "): " + responseText.substring(0, 100);
     }
   } catch (error) {
     Logger.log("API-Aufruf fehlgeschlagen: " + error);
