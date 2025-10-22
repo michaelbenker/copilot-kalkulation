@@ -108,15 +108,144 @@ function doGet(
   try {
     // Spreadsheet erstellen und API aufrufen
     const result = createAndProcessSpreadsheet(eventId);
+
+    // Erfolgsseite mit Event-Details
     return HtmlService.createHtmlOutput(`
-      <h1>Spreadsheet erstellt</h1>
-      <p>Event-ID: ${eventId}</p>
-      <p>Link: <a href="${result.url}" target="_blank">${result.url}</a></p>
-      <p>API-Status: ${result.apiStatus}</p>
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+              max-width: 600px;
+              margin: 50px auto;
+              padding: 20px;
+              background: #f5f5f5;
+            }
+            .container {
+              background: white;
+              padding: 40px;
+              border-radius: 8px;
+              box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            h1 {
+              color: #2e7d32;
+              margin-top: 0;
+            }
+            .success-icon {
+              font-size: 48px;
+              margin-bottom: 20px;
+            }
+            .event-details {
+              background: #f9f9f9;
+              padding: 20px;
+              border-radius: 4px;
+              margin: 20px 0;
+            }
+            .detail-row {
+              margin: 10px 0;
+              display: flex;
+              gap: 10px;
+            }
+            .detail-label {
+              font-weight: bold;
+              color: #666;
+              min-width: 100px;
+            }
+            .detail-value {
+              color: #333;
+            }
+            .cta-button {
+              display: inline-block;
+              background: #1976d2;
+              color: white;
+              padding: 15px 30px;
+              text-decoration: none;
+              border-radius: 4px;
+              margin-top: 20px;
+              font-weight: bold;
+              transition: background 0.3s;
+            }
+            .cta-button:hover {
+              background: #1565c0;
+            }
+            .api-status {
+              color: #2e7d32;
+              font-size: 14px;
+              margin-top: 20px;
+              padding: 10px;
+              background: #e8f5e9;
+              border-radius: 4px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="success-icon">✅</div>
+            <h1>Kalkulation erfolgreich erstellt!</h1>
+
+            <p>Das Spreadsheet wurde erfolgreich erstellt und in Copilot Events eingetragen.</p>
+
+            <div class="event-details">
+              <h3>Event-Details</h3>
+              <div class="detail-row">
+                <span class="detail-label">Datum:</span>
+                <span class="detail-value">${result.eventDetails.startDate || 'N/A'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Event:</span>
+                <span class="detail-value">${result.eventDetails.name || 'N/A'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Location:</span>
+                <span class="detail-value">${result.eventDetails.location || 'N/A'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Künstler:</span>
+                <span class="detail-value">${result.eventDetails.artists || 'N/A'}</span>
+              </div>
+            </div>
+
+            <a href="${result.url}" class="cta-button" target="_self">→ Zum Spreadsheet</a>
+
+            <div class="api-status">
+              ✓ In Copilot Events gespeichert (${result.apiStatus})
+            </div>
+          </div>
+        </body>
+      </html>
     `);
   } catch (error) {
     Logger.log("Fehler in doGet: " + error);
-    return HtmlService.createHtmlOutput(`<h1>Fehler</h1><p>${error}</p>`);
+    return HtmlService.createHtmlOutput(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              max-width: 600px;
+              margin: 50px auto;
+              padding: 20px;
+            }
+            .error {
+              background: #ffebee;
+              padding: 20px;
+              border-radius: 4px;
+              color: #c62828;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="error">
+            <h1>❌ Fehler</h1>
+            <p>${error}</p>
+          </div>
+        </body>
+      </html>
+    `);
   }
 }
 
@@ -126,6 +255,12 @@ function doGet(
 function createAndProcessSpreadsheet(eventId: string): {
   url: string;
   apiStatus: string;
+  eventDetails: {
+    startDate: string;
+    name: string;
+    location: string;
+    artists: string;
+  };
 } {
   try {
     // 1. Event-Daten von API abrufen
@@ -161,9 +296,10 @@ function createAndProcessSpreadsheet(eventId: string): {
     const sheet = spreadsheet.getActiveSheet();
 
     // B1: Start-Datum formatieren (DD.MM.YYYY HH:MM)
+    let formattedStart = "";
     const startDate = eventData.start || eventData.startDate;
     if (startDate) {
-      const formattedStart = new Date(startDate).toLocaleString("de-DE", {
+      formattedStart = new Date(startDate).toLocaleString("de-DE", {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
@@ -217,6 +353,12 @@ function createAndProcessSpreadsheet(eventId: string): {
     return {
       url: spreadsheetUrl,
       apiStatus: apiResult,
+      eventDetails: {
+        startDate: formattedStart,
+        name: eventData.displayName || eventData.name || "",
+        location: locationText,
+        artists: artistsText,
+      },
     };
   } catch (error) {
     Logger.log("Fehler beim Erstellen des Spreadsheets: " + error);
@@ -307,6 +449,8 @@ function updateEventBenutzerfeld(
     const payload = {
       value: linkValue,
     };
+
+    Logger.log("LinkValue erstellt: " + linkValue);
 
     const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
       method: "put",
